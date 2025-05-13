@@ -167,6 +167,7 @@ spec:
       - name: odoo
         image: odoo:16.0
         imagePullPolicy: "IfNotPresent"
+        command: ["odoo", "-i", "base"]
         env:
         - name: HOST
           value: "postgres-service" # Nom du service PostgreSQL
