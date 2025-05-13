@@ -1,0 +1,43 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.synced_folder "../", "/vagrant", type: "virtualbox"
+  # Configuration commune à toutes les VMs
+  config.vm.box = "ubuntu/jammy64" # Ubuntu 22.04 LTS
+  config.vm.box_check_update = false
+
+  # Désactiver la mise à jour automatique du kernel qui peut parfois interférer avec Vagrant
+  config.vm.provision "shell", inline: "sudo apt-mark hold linux-image-generic linux-headers-generic"
+  config.vm.provision "shell", inline: "sudo apt-get update -y" # Faire un update initial
+
+  # Partage du répertoire du projet dans /vagrant sur les VMs
+  # config.vm.synced_folder ".", "/vagrant", disabled: false # Activé par défaut
+
+  # Master Node Configuration
+  config.vm.define "k8s-master" do |master|
+    master.vm.hostname = "k8s-master"
+    master.vm.network "private_network", ip: "192.168.56.10"
+    master.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048"
+      vb.cpus = "2"
+      vb.name = "k8s-master-claytech"
+    end
+    master.vm.provision "shell", path: "setup-scripts/master-setup.sh"
+  end
+
+  # Worker Node Configuration
+  config.vm.define "k8s-worker01" do |worker|
+    worker.vm.hostname = "k8s-worker01"
+    worker.vm.network "private_network", ip: "192.168.56.11"
+    worker.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048" # Odoo et PostgreSQL peuvent nécessiter plus de RAM
+      vb.cpus = "2"
+      vb.name = "k8s-worker01-claytech"
+    end
+    worker.vm.provision "shell", path: "setup-scripts/worker-setup.sh"
+    # Instruction pour la création manuelle du hostPath pour PostgreSQL (voir README.md)
+    # L'utilisateur devra exécuter:
+    # vagrant ssh k8s-worker01 -c "sudo mkdir -p /mnt/data-postgres-pv && sudo chmod -R 777 /mnt/data-postgres-pv"
+  end
+end 
